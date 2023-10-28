@@ -74,6 +74,8 @@ class _MyFormState extends State<MyForm> {
   TextEditingController grandTotal = TextEditingController(text: "0");
   TextEditingController uangDibayar = TextEditingController(text: "0");
   TextEditingController uangKembali = TextEditingController(text: "0");
+  FocusNode _focusNodeJumlah = FocusNode();
+  FocusNode _focusNodeDibayar = FocusNode();
   File? _image;
 
   Future<void> _pickImage() async {
@@ -108,8 +110,9 @@ class _MyFormState extends State<MyForm> {
     String hasilGrandTotal = grandTotal.text;
     String hasilUangDibayar = uangDibayar.text;
     String hasilUangKembali = uangKembali.text;
+    int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text.replaceAll(".", "")) : 0;
     if(ABC) {
-      hasilJenisBarang = "$hasilJenisBarang\n - AAA";
+      hasilJenisBarang = "$hasilJenisBarang\n - ABC";
     }
     if(BBB) {
       hasilJenisBarang = "$hasilJenisBarang\n - BBB";
@@ -120,8 +123,53 @@ class _MyFormState extends State<MyForm> {
     if(WWW) {
       hasilJenisBarang = "$hasilJenisBarang\n - WWW";
     }
+
+    if(ABC) {
+      localJmlBeli += 100;
+    }
+    if(BBB) {
+      localJmlBeli -= 500;
+    }
+    if(XYZ) {
+      localJmlBeli += 200;
+    }
+    if(WWW && localJmlBeli > 0) {
+      localJmlBeli -= 100;
+    }
+    if(selectedLibur == "Ya") {
+      if(localJmlBeli > 0 && localJmlBeli >= 2500) {
+        localJmlBeli -= 2500;
+      }
+      else {
+        localJmlBeli = 0;
+      }
+    }
+    if(selectedSaudara == "Tidak") {
+      localJmlBeli += 3000;
+    }
+    else {
+      if(localJmlBeli > 0 && localJmlBeli >= 5000) {
+        localJmlBeli -= 5000;
+      }
+      else {
+        localJmlBeli = 0;
+      }
+    }
+
+
+    String hasilJumlahPembelian = int.parse(localJmlBeli.toString()).toString();
+    double gt = double.parse(grandTotal.text.replaceAll(".", ""));
+    double jl = double.parse(hasilJumlahPembelian.replaceAll(".", ""));
+    double uk = double.parse(uangKembali.text.replaceAll(".", ""));
+    hasilGrandTotal = gt.toStringAsFixed(gt.truncateToDouble() == gt ? 0: 1);
+    hasilUangKembali = uk.toStringAsFixed(uk.truncateToDouble() == uk ? 0: 1);
+    hasilJumlahPembelian = jl.toStringAsFixed(jl.truncateToDouble() == jl ? 0: 1);
+    hasilUangKembali = NumberFormat("#,##0", "en_US").format(int.parse(hasilUangKembali)).replaceAll(',', '.');
+    hasilGrandTotal = NumberFormat("#,##0", "en_US").format(int.parse(hasilGrandTotal)).replaceAll(',', '.');
+    hasilJumlahPembelian = NumberFormat("#,##0", "en_US").format(int.parse(hasilJumlahPembelian)).replaceAll(',', '.');
     
-    hasil.text = "Nomor Nota: $hasilNoNota\nNama Pembeli: $hasilNamaPembeli\nJenis: $hasilJenis\nTanggal Beli: $hasilTanggalPembelian\nDiskon: $hasilDiskon\nHari Libur: $hasilHariLibur\Saudara: $hasilSaudara\nJenis Barang Dibeli: $hasilJenisBarang\nPPN: $hasilPpn\nGrand Total: $hasilGrandTotal\nUang Dibayar: $hasilUangDibayar\nUang Kembali: $hasilUangKembali";
+    
+    hasil.text = "Nomor Nota: $hasilNoNota\nNama Pembeli: $hasilNamaPembeli\nJenis: $hasilJenis\nTanggal Beli: $hasilTanggalPembelian\nJumlah Pembelian: $hasilJumlahPembelian\nDiskon: $hasilDiskon%\nHari Libur: $hasilHariLibur\nSaudara: $hasilSaudara\nJenis Barang Dibeli: $hasilJenisBarang\nPPN: $hasilPpn%\nGrand Total: $hasilGrandTotal\nUang Dibayar: $hasilUangDibayar\nUang Kembali: $hasilUangKembali";
   }
 
   void reset() {
@@ -148,8 +196,26 @@ class _MyFormState extends State<MyForm> {
     });
   }
 
+  void onFocusJumlahBeli() {    
+      if(!_focusNodeJumlah.hasFocus) {
+        jumlahBeli.text = NumberFormat("#,##0", "en_US").format(int.parse(jumlahBeli.text.replaceAll(".", ''))).replaceAll(',', '.');
+      }
+      else {
+        jumlahBeli.text = jumlahBeli.text.replaceAll(".", "");
+      }
+  }
+
+  void onFocusDibayar() {    
+      if(!_focusNodeJumlah.hasFocus) {
+        uangDibayar.text = NumberFormat("#,##0", "en_US").format(int.parse(uangDibayar.text.replaceAll(".", ""))).replaceAll(',', '.');
+      }
+      else {
+        uangDibayar.text = uangDibayar.text.replaceAll(".", "");
+      }
+  }
+
   void onPriceChange() {
-    int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text) : 0;
+    int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text.replaceAll(".", "")) : 0;
     int localDiskon = diskon.text != "" ? int.parse(diskon.text) : 0;
     int localPpn = ppn.text != "" ? int.parse(ppn.text) : 0;
     if(ABC) {
@@ -188,18 +254,24 @@ class _MyFormState extends State<MyForm> {
       grandTotal.text = ((localJmlBeli - ((localDiskon / 100) * localJmlBeli))).toString();
     }
     if(localPpn > 0 && localJmlBeli > 0) {
-      grandTotal.text = (int.parse(grandTotal.text) + ((int.parse(grandTotal.text) * localPpn) / 100)).toString();
+      grandTotal.text = (double.parse(grandTotal.text) + ((double.parse(grandTotal.text) * localPpn) / 100)).toString();
     }
     grandTotal.text = double.parse(grandTotal.text).toInt().toString();
     
     uangKembali.text = "0";
-    if(uangDibayar.text != "") {
-      if(int.parse(uangDibayar.text) > 0 && int.parse(grandTotal.text) > 0) {
-        if(int.parse(uangDibayar.text) > int.parse(grandTotal.text)) {
-          uangKembali.text = (int.parse(uangDibayar.text) - int.parse(grandTotal.text)).toString();
+    if(uangDibayar.text.replaceAll(".", "") != "") {
+      if(double.parse(uangDibayar.text.replaceAll(".", "")) > 0 && double.parse(grandTotal.text) > 0) {
+        if(double.parse(uangDibayar.text.replaceAll(".", "")) > double.parse(grandTotal.text)) {
+          uangKembali.text = (double.parse(uangDibayar.text.replaceAll(".", "")) - double.parse(grandTotal.text)).toString();
         }
       }
     }
+    double gt = double.parse(grandTotal.text);
+    double uk = double.parse(uangKembali.text);
+    grandTotal.text = gt.toStringAsFixed(gt.truncateToDouble() == gt ? 0: 1);
+    uangKembali.text = uk.toStringAsFixed(uk.truncateToDouble() == uk ? 0: 1);
+    uangKembali.text = NumberFormat("#,##0", "en_US").format(int.parse(uangKembali.text)).replaceAll(',', '.');
+    grandTotal.text = NumberFormat("#,##0", "en_US").format(int.parse(grandTotal.text)).replaceAll(',', '.');
   }
 
   List<String> dropdownOptions = ['Biasa', 'Pelanggan', 'Pelanggan Istimewa'];
@@ -228,10 +300,16 @@ class _MyFormState extends State<MyForm> {
     super.initState();
     
     diskon.addListener(onPriceChange);
-    jumlahBeli.addListener(onPriceChange);
-    uangDibayar.addListener(onPriceChange);
+    jumlahBeli.addListener(() {
+      onPriceChange();
+    });
+    uangDibayar.addListener(() {
+      onPriceChange();
+    });
     ppn.addListener(onPriceChange);
     onPriceChange();
+    _focusNodeJumlah.addListener(onFocusJumlahBeli);
+    _focusNodeDibayar.addListener(onFocusDibayar);
   }
 
   @override
@@ -274,6 +352,7 @@ class _MyFormState extends State<MyForm> {
                           else {
                             diskon.text = "0";
                           }
+                          onPriceChange();
                         });
                       },
                       items: dropdownOptions.map((String option) {
@@ -318,6 +397,7 @@ class _MyFormState extends State<MyForm> {
                   FilteringTextInputFormatter.digitsOnly, // Allow only digits
                 ],
                 decoration: InputDecoration(labelText: 'Jumlah Pembelian'),
+                focusNode: _focusNodeJumlah,
               ),
               TextField(
                 controller: diskon,
@@ -440,6 +520,7 @@ class _MyFormState extends State<MyForm> {
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly, // Allow only digits
                 ],
+                focusNode: _focusNodeDibayar,
               ),
               TextField(
                 controller: uangKembali,
