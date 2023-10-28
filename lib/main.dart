@@ -161,15 +161,18 @@ class _MyFormState extends State<MyForm> {
     double gt = double.parse(grandTotal.text.replaceAll(".", ""));
     double jl = double.parse(hasilJumlahPembelian.replaceAll(".", ""));
     double uk = double.parse(uangKembali.text.replaceAll(".", ""));
+    double dk = double.parse(diskon.text.replaceAll(".", ""));
     hasilGrandTotal = gt.toStringAsFixed(gt.truncateToDouble() == gt ? 0: 1);
     hasilUangKembali = uk.toStringAsFixed(uk.truncateToDouble() == uk ? 0: 1);
     hasilJumlahPembelian = jl.toStringAsFixed(jl.truncateToDouble() == jl ? 0: 1);
+    hasilDiskon = dk.toStringAsFixed(dk.truncateToDouble() == dk ? 0: 1);
     hasilUangKembali = NumberFormat("#,##0", "en_US").format(int.parse(hasilUangKembali)).replaceAll(',', '.');
     hasilGrandTotal = NumberFormat("#,##0", "en_US").format(int.parse(hasilGrandTotal)).replaceAll(',', '.');
     hasilJumlahPembelian = NumberFormat("#,##0", "en_US").format(int.parse(hasilJumlahPembelian)).replaceAll(',', '.');
+    hasilDiskon = NumberFormat("#,##0", "en_US").format(int.parse(hasilDiskon)).replaceAll(',', '.');
     
     
-    hasil.text = "Nomor Nota: $hasilNoNota\nNama Pembeli: $hasilNamaPembeli\nJenis: $hasilJenis\nTanggal Beli: $hasilTanggalPembelian\nJumlah Pembelian: $hasilJumlahPembelian\nDiskon: $hasilDiskon%\nHari Libur: $hasilHariLibur\nSaudara: $hasilSaudara\nJenis Barang Dibeli: $hasilJenisBarang\nPPN: $hasilPpn%\nGrand Total: $hasilGrandTotal\nUang Dibayar: $hasilUangDibayar\nUang Kembali: $hasilUangKembali";
+    hasil.text = "Nomor Nota: $hasilNoNota\nNama Pembeli: $hasilNamaPembeli\nJenis: $hasilJenis\nTanggal Beli: $hasilTanggalPembelian\nJumlah Pembelian: $hasilJumlahPembelian\nNominal Diskon: $hasilDiskon\nHari Libur: $hasilHariLibur\nSaudara: $hasilSaudara\nJenis Barang Dibeli: $hasilJenisBarang\nPPN: $hasilPpn%\nGrand Total: $hasilGrandTotal\nUang Dibayar: $hasilUangDibayar\nUang Kembali: $hasilUangKembali";
   }
 
   void reset() {
@@ -196,6 +199,55 @@ class _MyFormState extends State<MyForm> {
     });
   }
 
+
+  void changeDiskon() {
+      double nominalDiskon = 0;
+      int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text.replaceAll(".", "")) : 0;
+      if(ABC) {
+        localJmlBeli += 100;
+      }
+      if(BBB) {
+        localJmlBeli -= 500;
+      }
+      if(XYZ) {
+        localJmlBeli += 200;
+      }
+      if(WWW && localJmlBeli > 0) {
+        localJmlBeli -= 100;
+      }
+      if(selectedLibur == "Ya") {
+        if(localJmlBeli > 0 && localJmlBeli >= 2500) {
+          localJmlBeli -= 2500;
+        }
+        else {
+          localJmlBeli = 0;
+        }
+      }
+      if(selectedSaudara == "Tidak") {
+        localJmlBeli += 3000;
+      }
+      else {
+        if(localJmlBeli > 0 && localJmlBeli >= 5000) {
+          localJmlBeli -= 5000;
+        }
+        else {
+          localJmlBeli = 0;
+        }
+      }
+      if(selectedOption == 'Pelanggan') {
+        nominalDiskon = ((2 / 100) * localJmlBeli);
+      }
+      else if(selectedOption == "Pelanggan Istimewa") {
+        nominalDiskon = ((4 / 100) * localJmlBeli);
+      }
+      else {
+        nominalDiskon = 0;
+      }
+
+      diskon.text = nominalDiskon.toInt().toString();
+      diskon.text = NumberFormat("#,##0", "en_US").format(int.parse(diskon.text.replaceAll(".", ""))).replaceAll(',', '.'); 
+  }
+
   void onFocusJumlahBeli() {    
       if(!_focusNodeJumlah.hasFocus) {
         jumlahBeli.text = NumberFormat("#,##0", "en_US").format(int.parse(jumlahBeli.text.replaceAll(".", ''))).replaceAll(',', '.');
@@ -203,6 +255,8 @@ class _MyFormState extends State<MyForm> {
       else {
         jumlahBeli.text = jumlahBeli.text.replaceAll(".", "");
       }
+      changeDiskon();
+      onPriceChange();
   }
 
   void onFocusDibayar() {    
@@ -216,7 +270,7 @@ class _MyFormState extends State<MyForm> {
 
   void onPriceChange() {
     int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text.replaceAll(".", "")) : 0;
-    int localDiskon = diskon.text != "" ? int.parse(diskon.text) : 0;
+    // int localDiskon = diskon.text != "" ? int.parse(diskon.text.replaceAll(".", "")) : 0;
     int localPpn = ppn.text != "" ? int.parse(ppn.text) : 0;
     if(ABC) {
       localJmlBeli += 100;
@@ -249,10 +303,14 @@ class _MyFormState extends State<MyForm> {
         localJmlBeli = 0;
       }
     }
+
+       
+
     grandTotal.text = localJmlBeli.toString();
-    if(localDiskon > 0 && localJmlBeli > 0) {
-      grandTotal.text = ((localJmlBeli - ((localDiskon / 100) * localJmlBeli))).toString();
-    }
+    grandTotal.text = (int.parse(grandTotal.text) - int.parse(diskon.text.replaceAll(".", ""))).toString();
+    // if(localDiskon > 0 && localJmlBeli > 0) {
+    //   grandTotal.text = ((localJmlBeli - ((localDiskon / 100) * localJmlBeli))).toString();
+    // }
     if(localPpn > 0 && localJmlBeli > 0) {
       grandTotal.text = (double.parse(grandTotal.text) + ((double.parse(grandTotal.text) * localPpn) / 100)).toString();
     }
@@ -343,15 +401,51 @@ class _MyFormState extends State<MyForm> {
                       onChanged: (String? newValue) {
                         setState(() {
                           selectedOption = newValue;
-                          if(newValue == 'Pelanggan') {
-                            diskon.text = "2";
+                          double nominalDiskon = 0;
+                          int localJmlBeli = jumlahBeli.text != "" ? int.parse(jumlahBeli.text.replaceAll(".", "")) : 0;
+                          if(ABC) {
+                            localJmlBeli += 100;
                           }
-                          else if(newValue == "Pelanggan Istimewa") {
-                            diskon.text = "4";
+                          if(BBB) {
+                            localJmlBeli -= 500;
+                          }
+                          if(XYZ) {
+                            localJmlBeli += 200;
+                          }
+                          if(WWW && localJmlBeli > 0) {
+                            localJmlBeli -= 100;
+                          }
+                          if(selectedLibur == "Ya") {
+                            if(localJmlBeli > 0 && localJmlBeli >= 2500) {
+                              localJmlBeli -= 2500;
+                            }
+                            else {
+                              localJmlBeli = 0;
+                            }
+                          }
+                          if(selectedSaudara == "Tidak") {
+                            localJmlBeli += 3000;
                           }
                           else {
-                            diskon.text = "0";
+                            if(localJmlBeli > 0 && localJmlBeli >= 5000) {
+                              localJmlBeli -= 5000;
+                            }
+                            else {
+                              localJmlBeli = 0;
+                            }
                           }
+                          if(newValue == 'Pelanggan') {
+                            nominalDiskon = ((2 / 100) * localJmlBeli);
+                          }
+                          else if(newValue == "Pelanggan Istimewa") {
+                            nominalDiskon = ((4 / 100) * localJmlBeli);
+                          }
+                          else {
+                            nominalDiskon = 0;
+                          }
+
+                          diskon.text = nominalDiskon.toInt().toString();
+                          diskon.text = NumberFormat("#,##0", "en_US").format(int.parse(diskon.text.replaceAll(".", ""))).replaceAll(',', '.'); 
                           onPriceChange();
                         });
                       },
@@ -401,6 +495,7 @@ class _MyFormState extends State<MyForm> {
               ),
               TextField(
                 controller: diskon,
+                enabled: false,
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly, // Allow only digits
@@ -457,6 +552,7 @@ class _MyFormState extends State<MyForm> {
                         onChanged: (value) {
                           setState(() {
                             ABC = value!;
+                            changeDiskon();
                             onPriceChange();
                           });
                         },
@@ -467,6 +563,7 @@ class _MyFormState extends State<MyForm> {
                         onChanged: (value) {
                           setState(() {
                             BBB = value!;
+                            changeDiskon();
                             onPriceChange();
                           });
                         },
@@ -481,6 +578,7 @@ class _MyFormState extends State<MyForm> {
                         onChanged: (value) {
                           setState(() {
                             XYZ = value!;
+                            changeDiskon();
                             onPriceChange();
                           });
                         },
@@ -491,6 +589,7 @@ class _MyFormState extends State<MyForm> {
                         onChanged: (value) {
                           setState(() {
                             WWW = value!;
+                            changeDiskon();
                             onPriceChange();
                           });
                         },
